@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: courses-api
+
+server:
+  compression:
+    enabled: true
+  port: 8181
+  servlet:
+    context-path: /course
+  forward-headers-strategy: framework
