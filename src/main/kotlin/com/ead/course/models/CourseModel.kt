@@ -55,8 +55,15 @@ data class CourseModel(
     @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
     @Fetch(FetchMode.SUBSELECT)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    var modules: Set<ModuleModel> = emptySet()
+    var modules: Set<ModuleModel> = emptySet(),
+
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
+    var courseUsers: Set<CourseUserModel> = emptySet()
 
 ) {
 
+    fun convertToCourseUserModel(userId: UUID): CourseUserModel {
+        return CourseUserModel(null, this, userId)
+    }
 }

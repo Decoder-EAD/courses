@@ -16,7 +16,7 @@ class CourseServiceImpl(
 ) : CourseService {
 
     override fun getCourses(spec: Specification<CourseModel>?, page: Pageable): Page<CourseModel> =
-        if (spec!= null) courseRepository.findAll(spec, page) else courseRepository.findAll(page)
+        if (spec != null) courseRepository.findAll(spec, page) else courseRepository.findAll(page)
 
     override fun getCourseById(courseId: UUID): CourseModel? = courseRepository.findByIdOrNull(courseId)
 

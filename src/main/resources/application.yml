@@ -1,4 +1,7 @@
 spring:
+  output:
+    ansi:
+      enabled: always
   application:
     name: course-service
   datasource:
@@ -22,3 +25,8 @@ server:
   servlet:
     context-path: /courses
   forward-headers-strategy: framework
+
+ead:
+  api:
+    url:
+      auth-user: "http://localhost:8180/auth-user"

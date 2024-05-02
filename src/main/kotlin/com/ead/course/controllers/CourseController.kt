@@ -4,6 +4,8 @@ import com.ead.course.dtos.CourseDto
 import com.ead.course.models.CourseModel
 import com.ead.course.service.CourseService
 import com.ead.course.spec.SpecificationTemplate
+import com.ead.course.spec.courseUserId
+import com.ead.course.validation.CourseValidator
 import org.springframework.beans.BeanUtils
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -12,6 +14,7 @@ import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.validation.Errors
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
@@ -22,14 +25,26 @@ import java.util.*
 @CrossOrigin(origins = ["*"], maxAge = 3600)
 @RequestMapping("/courses", produces = [MediaType.APPLICATION_JSON_VALUE])
 class CourseController(
-    private val courseService: CourseService
+
+    private val courseService: CourseService,
+    private val courseValidator: CourseValidator
+
 ) {
 
     @GetMapping
     fun getCourses(
         spec: SpecificationTemplate.CourseSpec?,
-        @PageableDefault(page = 0, size = 10, sort = ["courseId"], direction = Sort.Direction.ASC) page: Pageable
-    ): ResponseEntity<Page<CourseModel>> = ResponseEntity.ok(courseService.getCourses(spec, page))
+        @PageableDefault(page = 0, size = 10, sort = ["courseId"], direction = Sort.Direction.ASC) page: Pageable,
+        @RequestParam(required = false) userId: UUID?
+    ): ResponseEntity<Page<CourseModel>> {
+        val coursePage = if (userId != null) {
+            courseService.getCourses(courseUserId(userId).and(spec), page)
+        } else {
+            courseService.getCourses(spec, page)
+        }
+
+        return ResponseEntity.ok(coursePage)
+    }
 
     @GetMapping("{courseId}")
     fun getCourseById(@PathVariable courseId: UUID): ResponseEntity<Any> {
@@ -37,7 +52,12 @@ class CourseController(
     }
 
     @PostMapping
-    fun createCourse(@RequestBody @Validated requestBody: CourseDto): ResponseEntity<Any> {
+    fun createCourse(@RequestBody requestBody: CourseDto, errors: Errors): ResponseEntity<Any> {
+        courseValidator.validate(requestBody, errors)
+        if (errors.hasErrors()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors.allErrors)
+        }
+
         val courseModel = CourseModel()
         BeanUtils.copyProperties(requestBody, courseModel)
         courseService.save(courseModel)
