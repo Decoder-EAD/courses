@@ -14,6 +14,7 @@ import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.validation.Errors
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
@@ -31,6 +32,7 @@ class CourseController(
 
 ) {
 
+    @PreAuthorize("hasRole('STUDENT')")
     @GetMapping
     fun getCourses(
         spec: SpecificationTemplate.CourseSpec?,
@@ -46,11 +48,13 @@ class CourseController(
         return ResponseEntity.ok(coursePage)
     }
 
+    @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("{courseId}")
     fun getCourseById(@PathVariable courseId: UUID): ResponseEntity<Any> {
         return ResponseEntity.ok(courseService.getCourseById(courseId))
     }
 
+    @PreAuthorize("hasRole('INSTRUCTOR')")
     @PostMapping
     fun createCourse(@RequestBody requestBody: CourseDto, errors: Errors): ResponseEntity<Any> {
         courseValidator.validate(requestBody, errors)
@@ -58,12 +62,13 @@ class CourseController(
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors.allErrors)
         }
 
-        val courseModel = CourseModel()
+        val courseModel = CourseModel(userInstructor = requestBody.userInstructor)
         BeanUtils.copyProperties(requestBody, courseModel)
         courseService.save(courseModel)
         return ResponseEntity.status(HttpStatus.CREATED).body(courseModel)
     }
 
+    @PreAuthorize("hasRole('INSTRUCTOR')")
     @DeleteMapping("/{courseId}")
     fun deleteCourse(@PathVariable courseId: UUID): ResponseEntity<Any> {
         val courseModel = courseService.getCourseById(courseId)
@@ -73,6 +78,7 @@ class CourseController(
         return ResponseEntity.ok("Course deleted successfully.")
     }
 
+    @PreAuthorize("hasRole('INSTRUCTOR')")
     @PutMapping("/{courseId}")
     fun updateCourse(
         @PathVariable courseId: UUID,

@@ -20,8 +20,7 @@ import java.util.*
 data class CourseModel(
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    var courseId: UUID? = null,
+    val courseId: UUID = UUID.randomUUID(),
 
     @Column(nullable = false, length = 150)
     var name: String = "",
@@ -34,7 +33,7 @@ data class CourseModel(
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
     @Column(nullable = false)
-    var creationDate: LocalDateTime = LocalDateTime.now(ZoneId.of("UTC")),
+    val creationDate: LocalDateTime = LocalDateTime.now(ZoneId.of("UTC")),
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
     @Column(nullable = false)
@@ -49,7 +48,7 @@ data class CourseModel(
     var courseLevel: CourseLevel = CourseLevel.BEGINNER,
 
     @Column(nullable = false)
-    var userInstructor: UUID? = null,
+    var userInstructor: UUID,
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
@@ -58,12 +57,12 @@ data class CourseModel(
     var modules: Set<ModuleModel> = emptySet(),
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
-    var courseUsers: Set<CourseUserModel> = emptySet()
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "TB_COURSES_USERS",
+        joinColumns = [JoinColumn(name = "course_id")],
+        inverseJoinColumns = [JoinColumn(name = "user_id")]
+    )
+    var users: MutableSet<UserModel> = mutableSetOf()
 
-) {
-
-    fun convertToCourseUserModel(userId: UUID): CourseUserModel {
-        return CourseUserModel(null, this, userId)
-    }
-}
+)

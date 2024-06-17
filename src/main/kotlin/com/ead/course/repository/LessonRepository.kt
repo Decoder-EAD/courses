@@ -10,6 +10,9 @@ import java.util.*
 @Repository
 interface LessonRepository : JpaRepository<LessonModel, UUID>, JpaSpecificationExecutor<LessonModel> {
 
+    @Query(value = "SELECT lm FROM LessonModel lm WHERE lm.module.moduleId = :moduleId")
+    fun findLessonByModuleId(moduleId: UUID): List<LessonModel>
+
     @Query(value = "SELECT lm FROM LessonModel lm WHERE lm.module.moduleId = :moduleId AND lm.id = :lessonId")
     fun findLessonByModuleIdAndLessonId(moduleId: UUID, lessonId: UUID): LessonModel?
 

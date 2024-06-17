@@ -1,0 +1,13 @@
+spring:
+  cloud:
+    config:
+      enabled: true
+      discovery:
+        enabled: true
+        service-id: ead-config-server
+eureka:
+  client:
+    service-url:
+      defaultZone: ${ead.service-registry.url}
+  instance:
+    hostname: ${ead.service-registry.app-domain-name}

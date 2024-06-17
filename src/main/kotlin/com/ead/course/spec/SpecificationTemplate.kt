@@ -1,17 +1,19 @@
 package com.ead.course.spec
 
 import com.ead.course.models.CourseModel
-import com.ead.course.models.CourseUserModel
 import com.ead.course.models.LessonModel
 import com.ead.course.models.ModuleModel
-import jakarta.persistence.criteria.*
+import com.ead.course.models.UserModel
+import jakarta.persistence.criteria.CriteriaBuilder
+import jakarta.persistence.criteria.CriteriaQuery
+import jakarta.persistence.criteria.Expression
+import jakarta.persistence.criteria.Root
 import net.kaczmarzyk.spring.data.jpa.domain.Equal
 import net.kaczmarzyk.spring.data.jpa.domain.Like
 import net.kaczmarzyk.spring.data.jpa.web.annotation.And
 import net.kaczmarzyk.spring.data.jpa.web.annotation.Spec
 import org.springframework.data.jpa.domain.Specification
 import java.util.*
-
 
 class SpecificationTemplate {
 
@@ -27,6 +29,14 @@ class SpecificationTemplate {
 
     @Spec(path = "title", spec = Like::class)
     interface LessonSpec : Specification<LessonModel> {}
+
+    @And(
+        Spec(path = "email", spec = Like::class),
+        Spec(path = "fullName", spec = Like::class),
+        Spec(path = "userStatus", spec = Equal::class),
+        Spec(path = "userType", spec = Equal::class),
+    )
+    interface UserSpec: Specification<UserModel> {}
 
 }
 
@@ -50,10 +60,22 @@ fun lessonModuleId(id: UUID): Specification<LessonModel> {
     }
 }
 
-fun courseUserId(id: UUID): Specification<CourseModel> {
-    return Specification { root, query, criteriaBuilder ->
+fun userCourseId(id: UUID): Specification<UserModel> {
+    return Specification { root: Root<UserModel>, query: CriteriaQuery<*>, cb: CriteriaBuilder ->
         query.distinct(true)
-        val courseProd: Join<CourseModel, CourseUserModel> = root.join("courseUsers")
-        criteriaBuilder.equal(courseProd.get<UUID>("userId"), id)
+        val courseRoot: Root<CourseModel> = query.from(CourseModel::class.java)
+        val courseId: Expression<UUID> = courseRoot.get("courseId")
+        val users: Expression<Collection<UserModel>> = courseRoot.get("users")
+        cb.and(cb.equal(courseId, id), cb.isMember(root, users))
+    }
+}
+
+fun courseUserId(id: UUID): Specification<CourseModel> {
+    return Specification { root: Root<CourseModel>, query: CriteriaQuery<*>, cb: CriteriaBuilder ->
+        query.distinct(true)
+        val userRoot: Root<UserModel> = query.from(UserModel::class.java)
+        val userId: Expression<UUID> = userRoot.get("userId")
+        val courses: Expression<Collection<CourseModel>> = userRoot.get("courses")
+        cb.and(cb.equal(userId, id), cb.isMember(root, courses))
     }
 }

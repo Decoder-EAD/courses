@@ -1,46 +1,41 @@
 package com.ead.course.controllers
 
 import com.ead.authuser.enums.UserStatus
-import com.ead.course.clients.UserClient
 import com.ead.course.dtos.SubscriptionDto
-import com.ead.course.dtos.UserDto
 import com.ead.course.service.CourseService
-import com.ead.course.service.CourseUserService
-import org.springframework.data.domain.Page
+import com.ead.course.service.UserService
+import com.ead.course.spec.SpecificationTemplate
+import com.ead.course.spec.userCourseId
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.validation.annotation.Validated
-import org.springframework.web.bind.annotation.CrossOrigin
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.client.HttpStatusCodeException
-import java.util.UUID
+import org.springframework.web.bind.annotation.*
+import java.util.*
 
 @RestController
 @CrossOrigin(origins = ["*"], maxAge = 3600)
 @RequestMapping(path = ["/courses/{courseId}/users"], produces = [MediaType.APPLICATION_JSON_VALUE])
 class CourseUserController(
 
-    private val userClient: UserClient,
     private val courseService: CourseService,
-    private val courseUserService: CourseUserService
+    private val userService: UserService
 
 ) {
 
+    @PreAuthorize("hasRole('INSTRUCTOR')")
     @GetMapping
     fun getAllUsersByCourse(
+        spec: SpecificationTemplate.UserSpec,
         @PathVariable courseId: UUID,
         @PageableDefault(page = 0, size = 10, sort = ["userId"], direction = Sort.Direction.ASC) page: Pageable
-    ): ResponseEntity<Page<UserDto>> = ResponseEntity.ok(userClient.getAllUsersByCourse(courseId, page))
+    ): ResponseEntity<Any> = ResponseEntity.ok(userService.findAll(userCourseId(courseId).and(spec), page))
 
+    @PreAuthorize("hasRole('STUDENT')")
     @PostMapping("/subscription")
     fun saveSubscriptionUserInCourse(
         @PathVariable courseId: UUID,
@@ -49,23 +44,19 @@ class CourseUserController(
 
         val courseModel = courseService.getCourseById(courseId)
             ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Course not found.")
+        val userModel = userService.findUserById(subscription.userId)
+            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.")
 
-        if (courseUserService.existsByCourseAndUserId(courseModel, subscription.userId)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("User already subscribed.")
+        if (courseService.existsByCourseAndUser(courseId, subscription.userId)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Subscription already exists.")
         }
 
-        try {
-            val userDto = userClient.getUserById(subscription.userId)
-            if (userDto.body?.userStatus == UserStatus.BLOCKED) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("User is blocked.")
-            }
-        } catch (ex: HttpStatusCodeException) {
-            if (ex.statusCode == HttpStatus.NOT_FOUND) {
-                return ResponseEntity.status(ex.statusCode).body("User not found.")
-            }
+        if (userModel.userStatus == UserStatus.BLOCKED.toString()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("User is blocked.")
         }
 
-        courseUserService.saveAndSendUserSubscription(courseModel.convertToCourseUserModel(subscription.userId))
+        courseService.saveSubscriptionUserInCourseSendNotificationSubscription(courseModel, userModel)
+
         return ResponseEntity.status(HttpStatus.CREATED).body("Subscription created successfully!")
     }
 

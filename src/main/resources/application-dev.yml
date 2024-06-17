@@ -1,0 +1,26 @@
+logging:
+  level:
+    com.ead: TRACE
+    root: INFO
+    org.springframework.web: DEBUG
+    org.hibernate: INFO
+
+server:
+  port: ${PORT}
+
+ead:
+  database:
+    url: ${DATABASE_CONN}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+  broker:
+    connection:
+      address: ${CLOUDAMQP_URL}
+    exchange:
+      user-event: ead.user.event
+      notification-command-exchange: ead.notification.command
+    queue:
+      user-event-queue:
+        name: ead.user.event.ms.course
+    key:
+      notification-command-key: ms.notification

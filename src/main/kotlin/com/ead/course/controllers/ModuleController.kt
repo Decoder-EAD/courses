@@ -14,6 +14,7 @@ import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import java.util.*
@@ -26,6 +27,7 @@ class ModuleController(
     private val courseService: CourseService
 ) {
 
+    @PreAuthorize("hasRole('STUDENT')")
     @GetMapping
     fun getAllCourseModules(
         @PathVariable courseId: UUID,
@@ -34,6 +36,7 @@ class ModuleController(
     ): ResponseEntity<Page<ModuleModel>> =
         ResponseEntity.ok(moduleService.getModulesByCourseId(moduleCourseId(courseId).and(spec), page))
 
+    @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("/{moduleId}")
     fun getModuleById(
         @PathVariable courseId: UUID,
@@ -45,6 +48,7 @@ class ModuleController(
         return ResponseEntity.ok(moduleModel)
     }
 
+    @PreAuthorize("hasRole('INSTRUCTOR')")
     @PostMapping
     fun createModule(
         @PathVariable courseId: UUID,
@@ -60,6 +64,7 @@ class ModuleController(
         return ResponseEntity.status(HttpStatus.CREATED).body(moduleService.save(moduleModel))
     }
 
+    @PreAuthorize("hasRole('INSTRUCTOR')")
     @DeleteMapping("/{moduleId}")
     fun deleteModule(
         @PathVariable courseId: UUID,
@@ -72,6 +77,7 @@ class ModuleController(
         return ResponseEntity.ok("Module deleted successfully.")
     }
 
+    @PreAuthorize("hasRole('INSTRUCTOR')")
     @PutMapping("/{moduleId}")
     fun updateModule(
         @PathVariable courseId: UUID,

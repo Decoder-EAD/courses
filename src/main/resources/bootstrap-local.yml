@@ -1,0 +1,13 @@
+spring:
+  cloud:
+    config:
+      enabled: true
+      discovery:
+        enabled: true
+      username: configserver
+      password: ead123cs
+
+ead:
+  service-registry:
+    url: "http://serviceregistry:ead123sr@localhost:8761/eureka"
+    app-domain-name: localhost
